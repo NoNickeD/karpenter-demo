@@ -1,0 +1,45 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: system
+  namespace: karpenter
+spec:
+  template:
+    metadata:
+      labels:
+        node-type: system
+    spec:
+      nodeClassRef:
+        name: ec2nodeclass-system
+        kind: EC2NodeClass
+        group: karpenter.k8s.aws
+
+      # Taint ensures only pods with a matching toleration can schedule here
+      taints:
+        - key: node-type
+          value: system
+          effect: NoSchedule
+
+      requirements:
+        # Architecture
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        # OS
+        - key: kubernetes.io/os
+          operator: In
+          values: ["linux"]
+        # Exactly a single instance type (t3.large), or you could specify 'category' == t
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: ["t3.large"]
+
+        # e.g. On-demand or spot
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+
+  # Optional: overall resource limits for just this NodePool
+  limits:
+    cpu: "100"
+    memory: "200Gi"

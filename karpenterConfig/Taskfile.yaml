@@ -1,0 +1,64 @@
+version: "3"
+
+tasks:
+  use-context:
+    desc: "Switches to the Karpenter demo Kubernetes context."
+    cmds:
+      - echo "🚀 Switching to Kubernetes context karpenter-demo..."
+      - kubectl config use-context karpenter-demo
+    silent: true
+
+  delete-context:
+    desc: "Deletes the Karpenter demo Kubernetes context from the kubeconfig."
+    cmds:
+      - echo "🗑️ Removing Kubernetes context karpenter-demo..."
+      - kubectl config delete-context karpenter-demo
+    silent: true
+
+  install-metric-server:
+    desc: "Installs the Kubernetes Metrics Server to enable resource usage monitoring."
+    deps:
+      - use-context
+    cmds:
+      - echo "📊 Deploying the Kubernetes Metrics Server..."
+      - helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+      - helm repo update metrics-server
+      - helm install metrics-server metrics-server/metrics-server --namespace kube-system --set args[0]="--kubelet-insecure-tls"
+      - echo "✅ Metrics Server successfully installed!"
+    silent: true
+
+  install-ec2nodeclass:
+    desc: "Applies EC2NodeClass configurations for system and application workloads."
+    deps:
+      - use-context
+    cmds:
+      - echo "📦 Deploying EC2NodeClass resources..."
+      - kubectl apply -f ./ec2nodeclass/ec2nodeclass-system.yaml
+      - kubectl get ec2nodeclasses.karpenter.k8s.aws ec2nodeclass-system
+      - kubectl apply -f ./ec2nodeclass/ec2nodeclass-apps.yaml
+      - kubectl get ec2nodeclasses.karpenter.k8s.aws ec2nodeclass-apps
+      - echo "✅ EC2NodeClass configurations applied successfully!"
+    silent: true
+
+  install-nodepool:
+    desc: "Deploys NodePools for system and application workloads in Karpenter."
+    deps:
+      - use-context
+    cmds:
+      - echo "🔧 Applying NodePool configurations..."
+      - kubectl apply -f ./nodePool/nodePool-system.yaml
+      - kubectl get nodepools.karpenter.sh system
+      - kubectl apply -f ./nodePool/nodePool-app.yaml
+      - kubectl get nodepools.karpenter.sh apps
+      - echo "✅ NodePools successfully configured!"
+    silent: true
+
+  install-karpenter-concepts:
+    desc: "Deploys all Karpenter components: Metrics Server, EC2NodeClass, and NodePools."
+    cmds:
+      - echo "🚀 Deploying Karpenter concepts - Metrics Server, EC2NodeClass, and NodePools..."
+      - task: install-metric-server
+      - task: install-ec2nodeclass
+      - task: install-nodepool
+      - echo "✅ Karpenter concepts successfully deployed!"
+    silent: true

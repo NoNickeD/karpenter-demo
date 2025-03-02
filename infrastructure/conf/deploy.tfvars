@@ -1,0 +1,10 @@
+cidr_block            = "10.0.0.0/16"
+cluster_version       = "1.31"
+cluster_name          = "karpenter-demo"
+instance_types        = ["t3.large"]
+instance_types_system = ["t3.large"]
+name                  = "karpenter-demo"
+profile               = "sandbox"
+region                = "eu-central-1"
+project               = "karpenter-demo"
+disk_size_system      = "40"

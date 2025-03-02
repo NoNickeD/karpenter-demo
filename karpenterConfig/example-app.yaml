@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: example-app
+      app-type: default
+  template:
+    metadata:
+      labels:
+        app: example-app
+        app-type: default
+    spec:
+      nodeSelector:
+        app-type: default
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: "node.kubernetes.io/instance-type"
+                    operator: In
+                    values:
+                      - m5.4xlarge
+                      - c5.4xlarge
+                      - r5.2xlarge
+                  - key: "karpenter.sh/capacity-type"
+                    operator: In
+                    values:
+                      - on-demand
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: example-app
+              topologyKey: "kubernetes.io/hostname"
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: example-app
+                topologyKey: "topology.kubernetes.io/zone"
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "apps"
+          effect: "NoSchedule"
+      containers:
+        - name: example-container
+          image: nginx
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"

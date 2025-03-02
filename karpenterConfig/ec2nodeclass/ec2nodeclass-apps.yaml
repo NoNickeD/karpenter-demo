@@ -1,0 +1,62 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: ec2nodeclass-apps
+  namespace: karpenter
+spec:
+  ##################################
+  # 1) REQUIRED FIELDS
+  ##################################
+  
+  # Provide an AMI alias for AL2, pinned to a date version if you want stable updates.
+  amiSelectorTerms:
+    - id: "ami-0fbd0612be80a2247" 
+  
+  amiFamily: AL2
+  
+  # Provide a role that your cluster can pass to EC2 instances. 
+  # Must trust "ec2.amazonaws.com" and be something Karpenter can pass (PassRole).
+  role: "arn:aws:iam::931273402187:role/KarpenterNodeRole-karpenter-demo"
+  
+  # Subnets discovered by tag. Ensure your subnets have `karpenter-managed=true` or the correct tag.
+  subnetSelectorTerms:
+    - tags:
+        karpenter-managed: "true"
+  
+  # Security groups discovered by tag.
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter-managed: "true"
+
+  ##################################
+  # 2) OPTIONAL ENHANCEMENTS
+  ##################################
+
+  # Root volume settings. 
+  # 100 GiB + gp3 is a good default for general workloads. 
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 100Gi
+        volumeType: gp3
+        deleteOnTermination: true
+        # iops, throughput, encrypted, kmsKeyID, etc. can be specified here
+
+  # Basic Kubelet settings. 
+  # maxPods=50 is typical for small/medium instance types. 
+  kubelet:
+    maxPods: 50
+
+  # Lock down instance metadata for security best practices. 
+  # If omitted, the default is already `httpTokens: required`, but you can be explicit.
+  metadataOptions:
+    httpEndpoint: enabled
+    httpProtocolIPv6: disabled
+    httpPutResponseHopLimit: 1
+    httpTokens: required
+
+  # Custom tags for cost reporting or environment tracking. 
+  # (Karpenter automatically adds e.g. "kubernetes.io/cluster/<clustername>" anyway.)
+  tags:
+    Environment: prod
+    team: sre

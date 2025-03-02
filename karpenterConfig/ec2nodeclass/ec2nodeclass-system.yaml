@@ -1,0 +1,47 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: ec2nodeclass-system
+  namespace: karpenter
+spec:
+  # Use the same EKS-optimized AMI ID (or a different one if you want).
+  amiSelectorTerms:
+    - id: "ami-0fbd0612be80a2247"
+  amiFamily: AL2
+
+  # The same or a different IAM role as needed. Usually the same role is fine
+  # if you're okay granting the same policies to "system" nodes.
+  role: "arn:aws:iam::931273402187:role/KarpenterNodeRole-karpenter-demo"
+
+  # Use the new `subnetSelectorTerms` instead of `subnetSelector`
+  subnetSelectorTerms:
+    - tags:
+        karpenter-managed: "true"
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter-managed: "true"
+
+  # Root volume: 100 GiB, gp3, etc.
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 100Gi
+        volumeType: gp3
+        deleteOnTermination: true
+
+  # "kubelet" section replaces "kubeletConfiguration"
+  # maxPods=50 or any other settings you want.
+  kubelet:
+    maxPods: 50
+
+  # (Optional) metadataOptions, e.g. restricting IMDS
+  metadataOptions:
+    httpEndpoint: enabled
+    httpProtocolIPv6: disabled
+    httpPutResponseHopLimit: 1
+    httpTokens: required
+
+  # Tags for cost reporting, environment, etc.
+  tags:
+    Environment: prod
+    team: sre
